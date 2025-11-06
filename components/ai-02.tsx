@@ -8,6 +8,7 @@ import {
   IconFileSpark,
   IconGauge,
   IconPhotoScan,
+  type Icon,
 } from "@tabler/icons-react"
 
 import { Button } from "@/components/ui/button"
@@ -22,7 +23,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { cn } from "@/lib/utils"
 
 type PromptOption = {
-  icon: typeof IconAlertTriangle
+  icon: Icon
   text: string
   prompt: string
 }
