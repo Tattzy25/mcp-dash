@@ -3,7 +3,7 @@
 import { useState } from "react"
 import { Station } from "./types/station"
 import { StationSearchBar } from "./components/StationSearchBar"
-import { StationFilters } from "./components/StationFilters"
+import GridList02 from "@/components/grid-list-02"
 import { StationAudioPlayer } from "./components/StationAudioPlayer"
 import { StationList } from "./components/StationList"
 import { LoadMoreButton } from "./components/LoadMoreButton"
@@ -21,12 +21,8 @@ export function StationsGrid({ initialStations }: StationsGridProps) {
   const { searchQuery, stations, setStations, handleSearch } =
     useStationSearch(initialStations)
 
-  const {
-    selectedGenre,
-    showFilters,
-    setSelectedGenre,
-    setShowFilters,
-  } = useStationFilters(setStations, setIsSearching)
+  // Keep internal filtering hook active (no visible filter UI)
+  useStationFilters(setStations, setIsSearching)
 
   const { displayedStations, handleLoadMore, hasMore } =
     useStationPagination(stations)
@@ -45,12 +41,10 @@ export function StationsGrid({ initialStations }: StationsGridProps) {
         resultsCount={stations.length}
       />
 
-      <StationFilters
-        showFilters={showFilters}
-        selectedGenre={selectedGenre}
-        onToggleFilters={() => setShowFilters(!showFilters)}
-        onGenreChange={setSelectedGenre}
-      />
+      {/* Filters strip below search bar with exactly 50px spacing */}
+      <div className="mt-[50px]">
+        <GridList02 />
+      </div>
 
       <StationAudioPlayer stationsCount={stations.length} />
 
