@@ -11,7 +11,7 @@
  */
 
 import { cn } from "@/lib/utils";
-import { ArrowRight, Repeat2 } from "lucide-react";
+import { ArrowRight, Repeat2, Play } from "lucide-react";
 import { useState } from "react";
 
 export interface CardFlipProps {
@@ -19,6 +19,8 @@ export interface CardFlipProps {
     subtitle?: string;
     description?: string;
     features?: string[];
+    onPlay?: () => void;
+    showPlayButton?: boolean;
 }
 
 export default function CardFlip({
@@ -26,14 +28,17 @@ export default function CardFlip({
     subtitle = "Explore the fundamentals",
     description = "Dive deep into the world of modern UI/UX design.",
     features = ["UI/UX", "Modern Design", "Tailwind CSS", "Kokonut UI"],
+    onPlay,
+    showPlayButton = false,
 }: CardFlipProps) {
     const [isFlipped, setIsFlipped] = useState(false);
 
     return (
         <div
-            className="relative w-full max-w-[280px] h-[320px] group [perspective:2000px]"
+            className="relative w-full max-w-[280px] h-[280px] sm:h-[320px] group [perspective:2000px]"
             onMouseEnter={() => setIsFlipped(true)}
             onMouseLeave={() => setIsFlipped(false)}
+            onClick={() => setIsFlipped(!isFlipped)}
         >
             <div
                 className={cn(
@@ -81,13 +86,13 @@ export default function CardFlip({
                         </div>
                     </div>
 
-                    <div className="absolute bottom-0 left-0 right-0 p-5">
-                        <div className="flex items-center justify-between gap-3">
-                            <div className="space-y-1.5">
-                                <h3 className="text-lg font-semibold text-zinc-900 dark:text-white leading-snug tracking-tighter transition-all duration-500 ease-out-expo group-hover:translate-y-[-4px]">
+                    <div className="absolute bottom-0 left-0 right-0 p-4 sm:p-5">
+                        <div className="flex items-center justify-between gap-2 sm:gap-3">
+                            <div className="space-y-1 sm:space-y-1.5">
+                                <h3 className="text-base sm:text-lg font-semibold text-zinc-900 dark:text-white leading-snug tracking-tighter transition-all duration-500 ease-out-expo group-hover:translate-y-[-4px]">
                                     {title}
                                 </h3>
-                                <p className="text-sm text-zinc-600 dark:text-zinc-200 line-clamp-2 tracking-tight transition-all duration-500 ease-out-expo group-hover:translate-y-[-4px] delay-[50ms]">
+                                <p className="text-xs sm:text-sm text-zinc-600 dark:text-zinc-200 line-clamp-2 tracking-tight transition-all duration-500 ease-out-expo group-hover:translate-y-[-4px] delay-[50ms]">
                                     {subtitle}
                                 </p>
                             </div>
@@ -109,7 +114,7 @@ export default function CardFlip({
                     className={cn(
                         "absolute inset-0 w-full h-full",
                         "[backface-visibility:hidden] [transform:rotateY(180deg)]",
-                        "p-6 rounded-2xl",
+                        "p-4 sm:p-6 rounded-2xl",
                         "bg-gradient-to-b from-zinc-100 to-white dark:from-zinc-900 dark:to-black",
                         "border border-zinc-200 dark:border-zinc-800",
                         "shadow-xs dark:shadow-lg",
@@ -119,21 +124,21 @@ export default function CardFlip({
                         !isFlipped ? "opacity-0" : "opacity-100"
                     )}
                 >
-                    <div className="flex-1 space-y-6">
-                        <div className="space-y-2">
-                            <h3 className="text-lg font-semibold text-zinc-900 dark:text-white leading-snug tracking-tight transition-all duration-500 ease-out-expo group-hover:translate-y-[-2px]">
+                    <div className="flex-1 space-y-4 sm:space-y-6">
+                        <div className="space-y-1 sm:space-y-2">
+                            <h3 className="text-base sm:text-lg font-semibold text-zinc-900 dark:text-white leading-snug tracking-tight transition-all duration-500 ease-out-expo group-hover:translate-y-[-2px]">
                                 {title}
                             </h3>
-                            <p className="text-sm text-zinc-600 dark:text-zinc-400 tracking-tight transition-all duration-500 ease-out-expo group-hover:translate-y-[-2px] line-clamp-2">
+                            <p className="text-xs sm:text-sm text-zinc-600 dark:text-zinc-400 tracking-tight transition-all duration-500 ease-out-expo group-hover:translate-y-[-2px] line-clamp-2">
                                 {description}
                             </p>
                         </div>
 
-                        <div className="space-y-2">
+                        <div className="space-y-1.5 sm:space-y-2">
                             {features.map((feature, index) => (
                                 <div
                                     key={feature}
-                                    className="flex items-center gap-2 text-sm text-zinc-700 dark:text-zinc-300 transition-all duration-500"
+                                    className="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm text-zinc-700 dark:text-zinc-300 transition-all duration-500"
                                     style={{
                                         transform: isFlipped
                                             ? "translateX(0)"
@@ -144,39 +149,44 @@ export default function CardFlip({
                                         }ms`,
                                     }}
                                 >
-                                    <ArrowRight className="w-3 h-3 text-orange-500" />
-                                    <span>{feature}</span>
+                                    <ArrowRight className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-orange-500 flex-shrink-0" />
+                                    <span className="line-clamp-1">{feature}</span>
                                 </div>
                             ))}
                         </div>
                     </div>
 
-                    <div className="pt-6 mt-6 border-t border-zinc-200 dark:border-zinc-800">
+                    <div className="pt-4 sm:pt-6 mt-4 sm:mt-6 border-t border-zinc-200 dark:border-zinc-800">
                         <div
                             className={cn(
                                 "group/start relative",
                                 "flex items-center justify-between",
-                                "p-3 -m-3 rounded-xl",
+                                "p-2 sm:p-3 -m-2 sm:-m-3 rounded-xl",
                                 "transition-all duration-300",
                                 "bg-gradient-to-r from-zinc-100 via-zinc-100 to-zinc-100",
                                 "dark:from-zinc-800 dark:via-zinc-800 dark:to-zinc-800",
                                 "hover:from-orange-500/10 hover:from-0% hover:via-orange-500/5 hover:via-100% hover:to-transparent hover:to-100%",
                                 "dark:hover:from-orange-500/20 dark:hover:from-0% dark:hover:via-orange-500/10 dark:hover:via-100% dark:hover:to-transparent dark:hover:to-100%",
-                                "hover:scale-[1.02] hover:cursor-pointer"
+                                "hover:scale-[1.02] hover:cursor-pointer active:scale-[0.98]"
                             )}
+                            onClick={() => onPlay?.()}
                         >
-                            <span className="text-sm font-medium text-zinc-900 dark:text-white transition-colors duration-300 group-hover/start:text-orange-600 dark:group-hover/start:text-orange-400">
-                                Start today
+                            <span className="text-xs sm:text-sm font-medium text-zinc-900 dark:text-white transition-colors duration-300 group-hover/start:text-orange-600 dark:group-hover/start:text-orange-400">
+                                {showPlayButton ? "Play Station" : "Start today"}
                             </span>
                             <div className="relative group/icon">
                                 <div
                                     className={cn(
-                                        "absolute inset-[-6px] rounded-lg transition-all duration-300",
+                                        "absolute inset-[-4px] sm:inset-[-6px] rounded-lg transition-all duration-300",
                                         "bg-gradient-to-br from-orange-500/20 via-orange-500/10 to-transparent",
                                         "opacity-0 group-hover/start:opacity-100 scale-90 group-hover/start:scale-100"
                                     )}
                                 />
-                                <ArrowRight className="relative z-10 w-4 h-4 text-orange-500 transition-all duration-300 group-hover/start:translate-x-0.5 group-hover/start:scale-110" />
+                                {showPlayButton ? (
+                                    <Play className="relative z-10 w-4 h-4 text-orange-500 transition-all duration-300 group-hover/start:translate-x-0.5 group-hover/start:scale-110 fill-orange-500" />
+                                ) : (
+                                    <ArrowRight className="relative z-10 w-4 h-4 text-orange-500 transition-all duration-300 group-hover/start:translate-x-0.5 group-hover/start:scale-110" />
+                                )}
                             </div>
                         </div>
                     </div>

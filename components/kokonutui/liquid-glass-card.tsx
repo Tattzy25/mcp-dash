@@ -14,9 +14,12 @@ import { cva, type VariantProps } from "class-variance-authority";
 import { ArrowLeft, ArrowRight, Pause, Play } from "lucide-react";
 import Image from "next/image";
 import React from "react";
-import { Button, type ButtonProps } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
+
+// Define ButtonProps locally since it's not exported from button.tsx
+type ButtonProps = React.ComponentProps<typeof Button>;
 
 // Constants for better maintainability
 const GLASS_SHADOW_LIGHT =

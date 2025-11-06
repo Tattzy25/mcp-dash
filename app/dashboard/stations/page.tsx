@@ -1,52 +1,41 @@
-import { getStationsByGenres } from "@/app/actions/radio-browser"
-import AiVoice from "@/components/kokonutui/ai-voice"
-import { LiquidGlassCard } from "@/components/kokonutui/liquid-glass-card"
+import { searchStationsAdvanced } from "@/app/actions/radio-browser"
+import { StationsGrid } from "./stations-grid"
 import ShimmerText from "@/components/kokonutui/shimmer-text"
 
-import { StationsGrid } from "./stations-grid"
-
 export default async function StationsPage() {
-  // Fetch real radio stations from Radio Browser API
-  const stations = await getStationsByGenres(
-    ['hip hop', 'edm', 'techno', 'reggaeton', 'r&b', 'rap', 'electronic'],
-    20 // top 20 per genre
-  )
+  // Fetch exactly 10 high-quality radio stations with bitrate >= 120 kbps
+  const stations = await searchStationsAdvanced({
+    bitrateMin: 120, // Only stations with 128+ kbps
+    limit: 10, // Exactly 10 stations
+    order: 'clickcount', // Sort by popularity
+    reverse: true, // Highest first
+    hidebroken: true, // No broken stations
+  })
 
   return (
-    <div className="flex flex-1 flex-col gap-8 p-4 lg:px-6">
-      {/* Header Section */}
-      <div className="flex flex-col items-center gap-3 text-center">
-        <h1 className="text-4xl font-bold tracking-tight lg:text-5xl">
-          <ShimmerText text="Hit Play. Watch Data Shake Its Assets." />
-        </h1>
-        <p className="text-lg text-muted-foreground max-w-2xl">
+    <div className="flex flex-1 flex-col px-1 lg:px-1 pb-4 pt-0">
+      {/* Header Section - Left aligned with shimmer */}
+      <div className="flex flex-col gap-2 w-full mt-0 pt-0">
+        <ShimmerText 
+          text="Hit Play. Watch Data Shake Its Assets." 
+          className="text-7xl sm:text-8xl md:text-9xl lg:text-[140px] xl:text-[160px] 2xl:text-[180px] font-bold tracking-tight leading-none text-left"
+        />
+      </div>
+
+      {/* Subheadline - Center aligned, one row */}
+      <div className="flex justify-center w-full mb-8">
+        <p className="text-lg sm:text-xl md:text-2xl text-muted-foreground text-center">
           From raw numbers to rhythmic nonsense, courtesy of Bridgit AI
         </p>
       </div>
 
-      {/* AI Voice & Glass Audio Player */}
-      <div className="flex flex-col lg:flex-row items-center justify-center gap-6 lg:gap-12">
-        {/* AI Voice - Left */}
-        <div className="flex justify-center lg:justify-end lg:flex-1">
-          <div className="scale-125">
-            <AiVoice />
-          </div>
-        </div>
+      {/* 100px spacing */}
+      <div className="h-[100px]" />
 
-        {/* Glass Audio Player - Right */}
-        <div className="flex justify-center lg:justify-start lg:flex-1">
-          <LiquidGlassCard className="w-full max-w-md">
-            <div className="p-6">
-              <h3 className="font-semibold mb-2">Audio Player</h3>
-              <p className="text-sm text-muted-foreground">
-                {stations.length} real radio stations loaded from Radio Browser
-              </p>
-            </div>
-          </LiquidGlassCard>
-        </div>
+      {/* Stations Grid with Search - Center aligned */}
+      <div className="flex flex-col items-center w-full">
+        <StationsGrid initialStations={stations} />
       </div>
-
-      <StationsGrid initialStations={stations} />
     </div>
   )
 }

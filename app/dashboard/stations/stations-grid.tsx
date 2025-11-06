@@ -1,104 +1,62 @@
 "use client"
 
 import { useState } from "react"
-import { IconSearch } from "@tabler/icons-react"
-
-import { searchStations } from "@/app/actions/radio-browser"
-import CardFlip from "@/components/kokonutui/card-flip"
-import { Input } from "@/components/ui/input"
-
-interface Station {
-  id: string
-  title: string
-  subtitle: string
-  description: string
-  features: string[]
-  stationuuid: string
-  streamUrl: string
-  favicon: string
-}
+import { Station } from "./types/station"
+import { StationSearchBar } from "./components/StationSearchBar"
+import { StationFilters } from "./components/StationFilters"
+import { StationAudioPlayer } from "./components/StationAudioPlayer"
+import { StationList } from "./components/StationList"
+import { LoadMoreButton } from "./components/LoadMoreButton"
+import { useStationSearch } from "./hooks/useStationSearch"
+import { useStationFilters } from "./hooks/useStationFilters"
+import { useStationPagination } from "./hooks/useStationPagination"
 
 interface StationsGridProps {
   initialStations: Station[]
 }
 
 export function StationsGrid({ initialStations }: StationsGridProps) {
-  const [searchQuery, setSearchQuery] = useState("")
-  const [stations, setStations] = useState<Station[]>(initialStations)
   const [isSearching, setIsSearching] = useState(false)
 
-  const handleSearch = async (query: string) => {
-    setSearchQuery(query)
+  const { searchQuery, stations, setStations, handleSearch } =
+    useStationSearch(initialStations)
 
-    if (!query.trim()) {
-      setStations(initialStations)
-      return
-    }
+  const {
+    selectedGenre,
+    showFilters,
+    setSelectedGenre,
+    setShowFilters,
+  } = useStationFilters(setStations, setIsSearching)
 
-    setIsSearching(true)
-    try {
-      const results = await searchStations(query)
-      setStations(results)
-    } catch (error) {
-      console.error('Search failed:', error)
-      // Fallback to client-side filtering
-      const filtered = initialStations.filter(
-        (station) =>
-          station.title.toLowerCase().includes(query.toLowerCase()) ||
-          station.subtitle.toLowerCase().includes(query.toLowerCase())
-      )
-      setStations(filtered)
-    } finally {
-      setIsSearching(false)
-    }
+  const { displayedStations, handleLoadMore, hasMore } =
+    useStationPagination(stations)
+
+  const handlePlayStation = (station: Station) => {
+    console.log("Playing station:", station.title, station.streamUrl)
+    // TODO: Implement audio playback
   }
 
   return (
-    <>
-      {/* Search Bar */}
-      <div className="mx-auto w-full max-w-2xl">
-        <div className="relative">
-          <IconSearch className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            type="search"
-            placeholder="Search stations..."
-            value={searchQuery}
-            onChange={(e) => handleSearch(e.target.value)}
-            className="pl-10 h-12 text-base"
-          />
-        </div>
-        {isSearching && (
-          <p className="text-sm text-muted-foreground mt-2 text-center">
-            Searching...
-          </p>
-        )}
-        {!isSearching && searchQuery && (
-          <p className="text-sm text-muted-foreground mt-2 text-center">
-            Found {stations.length} station{stations.length !== 1 ? 's' : ''}
-          </p>
-        )}
-      </div>
+    <div className="flex flex-col gap-8">
+      <StationSearchBar
+        searchQuery={searchQuery}
+        isSearching={isSearching}
+        onSearchChange={handleSearch}
+        resultsCount={stations.length}
+      />
 
-      {/* Stations Grid with Flip Cards */}
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 place-items-center">
-        {stations.map((station) => (
-          <CardFlip
-            key={station.id}
-            title={station.title}
-            subtitle={station.subtitle}
-            description={station.description}
-            features={station.features}
-          />
-        ))}
-      </div>
+      <StationFilters
+        showFilters={showFilters}
+        selectedGenre={selectedGenre}
+        onToggleFilters={() => setShowFilters(!showFilters)}
+        onGenreChange={setSelectedGenre}
+      />
 
-      {stations.length === 0 && (
-        <div className="text-center py-12">
-          <p className="text-lg text-muted-foreground">
-            No stations found. Try a different search.
-          </p>
-        </div>
-      )}
-    </>
+      <StationAudioPlayer stationsCount={stations.length} />
+
+      <StationList stations={displayedStations} onPlay={handlePlayStation} />
+
+      <LoadMoreButton hasMore={hasMore} onLoadMore={handleLoadMore} />
+    </div>
   )
 }

@@ -2,25 +2,6 @@
 
 import dns from 'dns/promises'
 
-// Fallback servers if DNS lookup fails
-const FALLBACK_SERVERS = [
-  'https://fi1.api.radio-browser.info',
-  'https://de2.api.radio-browser.info',
-  'https://de1.api.radio-browser.info',
-  'https://nl1.api.radio-browser.info',
-]
-
-// Default genres to fetch
-const DEFAULT_GENRES = [
-  'hip hop',
-  'edm',
-  'techno',
-  'reggaeton',
-  'r&b',
-  'rap',
-  'electronic',
-]
-
 interface RadioStation {
   stationuuid: string
   name: string
@@ -61,190 +42,193 @@ interface TransformedStation {
   favicon: string
 }
 
-/**
- * Get all Radio Browser server URLs via DNS lookup
- * Falls back to hardcoded servers if DNS fails
- */
-async function getRadioBrowserServers(): Promise<string[]> {
-  try {
-    const records = await dns.resolveSrv('_api._tcp.radio-browser.info')
-    const servers = records
-      .sort((a, b) => a.priority - b.priority)
-      .map((record) => `https://${record.name}`)
+interface SearchFilters {
+  tag?: string
+  tagExact?: boolean
+  countrycode?: string
+  language?: string
+  codec?: string
+  bitrateMin?: number
+  bitrateMax?: number
+  order?: 'clickcount' | 'votes' | 'bitrate' | 'name' | 'random'
+  reverse?: boolean
+  limit?: number
+  offset?: number
+  hidebroken?: boolean
+}
 
-    // Shuffle for load balancing
-    return servers.sort(() => Math.random() - 0.5)
-  } catch (error) {
-    console.error('DNS lookup failed, using fallback servers:', error)
-    // Shuffle fallback servers
-    return [...FALLBACK_SERVERS].sort(() => Math.random() - 0.5)
-  }
+interface CountryInfo {
+  name: string
+  stationcount: number
+}
+
+interface TagInfo {
+  name: string
+  stationcount: number
+}
+
+interface LanguageInfo {
+  name: string
+  iso_639: string | null
+  stationcount: number
 }
 
 /**
- * Download data from Radio Browser API with retry logic
+ * Get Radio Browser servers via DNS SRV lookup
  */
-async function downloadFromRadioBrowser<T>(
-  path: string,
-  servers?: string[]
-): Promise<T> {
-  const serverList = servers || (await getRadioBrowserServers())
+async function getRadioBrowserServers(): Promise<string[]> {
+  const records = await dns.resolveSrv('_api._tcp.radio-browser.info')
+  const servers = records
+    .sort((a, b) => a.priority - b.priority)
+    .map((record) => `https://${record.name}`)
+  return servers.sort(() => Math.random() - 0.5)
+}
 
-  for (let i = 0; i < serverList.length; i++) {
-    const server = serverList[i]
-    const url = `${server}${path}`
-
+/**
+ * Fetch from Radio Browser API
+ */
+async function fetchFromAPI<T>(path: string): Promise<T> {
+  const servers = await getRadioBrowserServers()
+  
+  for (const server of servers) {
     try {
-      console.log(`Trying server ${i + 1}/${serverList.length}: ${server}`)
-
-      const response = await fetch(url, {
+      const response = await fetch(`${server}${path}`, {
         headers: {
           'User-Agent': 'Bridgit AI/1.0',
           'Content-Type': 'application/json',
         },
-        next: { revalidate: 3600 }, // Cache for 1 hour
+        next: { revalidate: 3600 },
       })
 
       if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`)
+        throw new Error(`HTTP ${response.status}`)
       }
 
-      const data = await response.json()
-      return data as T
+      return await response.json() as T
     } catch (error) {
-      console.error(`Failed to download from ${url}:`, error)
-      if (i === serverList.length - 1) {
-        throw new Error('All Radio Browser servers failed')
-      }
-      // Continue to next server
+      console.error(`Failed ${server}:`, error)
+      continue
     }
   }
 
-  throw new Error('No servers available')
+  throw new Error('All servers failed')
 }
 
 /**
- * Fetch radio stations by genre tags
+ * Build query string from filters
  */
-export async function getStationsByGenres(
-  genres: string[] = DEFAULT_GENRES,
-  limit: number = 20
+function buildQuery(filters: SearchFilters): string {
+  const params = new URLSearchParams()
+
+  if (filters.tag) params.append('tag', filters.tag)
+  if (filters.tagExact) params.append('tagExact', 'true')
+  if (filters.countrycode) params.append('countrycode', filters.countrycode)
+  if (filters.language) params.append('language', filters.language)
+  if (filters.codec) params.append('codec', filters.codec)
+  if (filters.bitrateMin !== undefined) params.append('bitrateMin', filters.bitrateMin.toString())
+  if (filters.bitrateMax !== undefined) params.append('bitrateMax', filters.bitrateMax.toString())
+
+  params.append('order', filters.order || 'clickcount')
+  params.append('reverse', filters.reverse !== false ? 'true' : 'false')
+  params.append('limit', (filters.limit || 100).toString())
+  params.append('offset', (filters.offset || 0).toString())
+  params.append('hidebroken', filters.hidebroken !== false ? 'true' : 'false')
+
+  return params.toString()
+}
+
+/**
+ * Transform station to display format
+ */
+function transformStation(station: RadioStation): TransformedStation {
+  return {
+    id: station.stationuuid,
+    title: station.name,
+    subtitle: station.tags.split(',').slice(0, 3).join(', ') || 'Radio',
+    description: station.homepage || `${station.countrycode} • ${station.language}`,
+    features: [
+      `${station.codec || 'Unknown'} ${station.bitrate ? station.bitrate + ' kbps' : ''}`.trim(),
+      `${station.clickcount.toLocaleString()} clicks`,
+      `${station.votes} votes`,
+      station.countrycode || 'Unknown',
+    ].filter(Boolean),
+    stationuuid: station.stationuuid,
+    streamUrl: station.url_resolved || station.url,
+    favicon: station.favicon || '',
+  }
+}
+
+/**
+ * Advanced search with filters
+ */
+export async function searchStationsAdvanced(
+  filters: SearchFilters = {}
 ): Promise<TransformedStation[]> {
-  try {
-    // Get server list once for all requests
-    const servers = await getRadioBrowserServers()
-
-    // Fetch stations for each genre in parallel
-    const genrePromises = genres.map(async (genre) => {
-      const path = `/json/stations/search?tag=${encodeURIComponent(genre)}&hidebroken=true&limit=${limit}&order=clickcount&reverse=true`
-      return downloadFromRadioBrowser<RadioStation[]>(path, servers)
-    })
-
-    const results = await Promise.all(genrePromises)
-
-    // Flatten results and deduplicate by stationuuid
-    const allStations = results.flat()
-    const uniqueStations = new Map<string, RadioStation>()
-
-    for (const station of allStations) {
-      // Filter out broken stations
-      if (station.lastcheckok !== 1) continue
-
-      // Keep station with highest clickcount if duplicate
-      const existing = uniqueStations.get(station.stationuuid)
-      if (!existing || station.clickcount > existing.clickcount) {
-        uniqueStations.set(station.stationuuid, station)
-      }
-    }
-
-    // Transform to CardFlip format
-    const transformed: TransformedStation[] = Array.from(
-      uniqueStations.values()
-    ).map((station) => ({
-      id: station.stationuuid,
-      title: station.name,
-      subtitle: station.tags.split(',').slice(0, 3).join(', ') || 'Radio',
-      description: station.homepage || `${station.countrycode} • ${station.language}`,
-      features: [
-        `${station.codec || 'Unknown'} ${station.bitrate ? station.bitrate + ' kbps' : ''}`.trim(),
-        `${station.clickcount.toLocaleString()} clicks`,
-        `${station.votes} votes`,
-        station.countrycode || 'Unknown',
-      ].filter(Boolean),
-      stationuuid: station.stationuuid,
-      streamUrl: station.url_resolved || station.url,
-      favicon: station.favicon || '',
-    }))
-
-    // Sort by clickcount descending
-    transformed.sort((a, b) => {
-      const stationA = uniqueStations.get(a.stationuuid)!
-      const stationB = uniqueStations.get(b.stationuuid)!
-      return stationB.clickcount - stationA.clickcount
-    })
-
-    return transformed
-  } catch (error) {
-    console.error('Error fetching stations:', error)
-    throw error
+  if (!filters.bitrateMin) {
+    filters.bitrateMin = 120
   }
+
+  const query = buildQuery(filters)
+  const stations = await fetchFromAPI<RadioStation[]>(`/json/stations/search?${query}`)
+
+  return stations
+    .filter((station) => station.lastcheckok === 1 && station.bitrate >= 120)
+    .map(transformStation)
 }
 
 /**
- * Track station click and get streaming URL
+ * Get countries
  */
-export async function trackStationClick(
-  stationuuid: string
-): Promise<{ url: string; name: string; ok: boolean; message: string }> {
-  try {
-    const path = `/json/url/${stationuuid}`
-    const result = await downloadFromRadioBrowser<{
-      url: string
-      name: string
-      ok: boolean
-      message: string
-    }>(path)
-
-    return result
-  } catch (error) {
-    console.error('Error tracking click:', error)
-    throw error
-  }
+export async function getCountries(): Promise<CountryInfo[]> {
+  const countries = await fetchFromAPI<CountryInfo[]>(
+    '/json/countrycodes?order=stationcount&reverse=true&limit=500'
+  )
+  return countries.filter((c) => c.stationcount > 0)
 }
 
 /**
- * Search stations by name
+ * Get tags/genres
+ */
+export async function getTags(limit: number = 50): Promise<TagInfo[]> {
+  const tags = await fetchFromAPI<TagInfo[]>(
+    `/json/tags?order=stationcount&reverse=true&limit=${limit}&hidebroken=true`
+  )
+  return tags.filter((t) => t.stationcount > 0)
+}
+
+/**
+ * Get languages
+ */
+export async function getLanguages(limit: number = 50): Promise<LanguageInfo[]> {
+  const languages = await fetchFromAPI<LanguageInfo[]>(
+    `/json/languages?order=stationcount&reverse=true&limit=${limit}&hidebroken=true`
+  )
+  return languages.filter((l) => l.stationcount > 0)
+}
+
+/**
+ * Search by name
  */
 export async function searchStations(
   query: string,
   limit: number = 50
 ): Promise<TransformedStation[]> {
-  try {
-    const path = `/json/stations/search?name=${encodeURIComponent(query)}&hidebroken=true&limit=${limit}&order=clickcount&reverse=true`
-    const stations = await downloadFromRadioBrowser<RadioStation[]>(path)
+  const stations = await fetchFromAPI<RadioStation[]>(
+    `/json/stations/search?name=${encodeURIComponent(query)}&bitrateMin=120&hidebroken=true&limit=${limit}&order=clickcount&reverse=true`
+  )
 
-    // Filter out broken stations and transform
-    const transformed: TransformedStation[] = stations
-      .filter((station) => station.lastcheckok === 1)
-      .map((station) => ({
-        id: station.stationuuid,
-        title: station.name,
-        subtitle: station.tags.split(',').slice(0, 3).join(', ') || 'Radio',
-        description: station.homepage || `${station.countrycode} • ${station.language}`,
-        features: [
-          `${station.codec || 'Unknown'} ${station.bitrate ? station.bitrate + ' kbps' : ''}`.trim(),
-          `${station.clickcount.toLocaleString()} clicks`,
-          `${station.votes} votes`,
-          station.countrycode || 'Unknown',
-        ].filter(Boolean),
-        stationuuid: station.stationuuid,
-        streamUrl: station.url_resolved || station.url,
-        favicon: station.favicon || '',
-      }))
+  return stations
+    .filter((station) => station.lastcheckok === 1 && station.bitrate >= 120)
+    .map(transformStation)
+}
 
-    return transformed
-  } catch (error) {
-    console.error('Error searching stations:', error)
-    throw error
-  }
+/**
+ * Track click
+ */
+export async function trackStationClick(
+  stationuuid: string
+): Promise<{ url: string; name: string; ok: boolean; message: string }> {
+  return await fetchFromAPI<{ url: string; name: string; ok: boolean; message: string }>(
+    `/json/url/${stationuuid}`
+  )
 }
