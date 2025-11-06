@@ -154,14 +154,14 @@ const data = {
     },
     {
       title: "Search",
-      url: "#",
+      url: "/dashboard",
       icon: IconSearch,
     },
   ],
   documents: [
     {
-      name: "Data Library",
-      url: "/dashboard/data-library",
+      name: "Integrations",
+      url: "/dashboard/integrations",
       icon: IconDatabase,
     },
     {
