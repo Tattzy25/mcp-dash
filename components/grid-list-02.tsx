@@ -1,62 +1,67 @@
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Card, CardContent } from "@/components/ui/card";
+"use client"
 
-const people = [
+import { StationCard } from "@/components/station-card"
+
+const genres = [
   {
-    name: "Timur Ercan",
-    email: "timur@documenso.com",
-    role: "Co-Founder / CEO",
-    imageUrl: "https://blocks.so/avatar-02.png",
+    name: "Rock Classics",
+    description: "Epic guitar riffs and legendary rock anthems",
+    date: "Popular Genre",
+    imageUrl: "https://images.unsplash.com/photo-1498038432885-c6f3f1b912ee?w=800&auto=format&fit=crop",
   },
   {
-    name: "Lucas Smith",
-    email: "lucas@documenso.com",
-    role: "Co-Founder / CTO",
-    imageUrl: "https://blocks.so/avatar-03.png",
+    name: "Jazz & Blues",
+    description: "Smooth saxophone and soulful rhythms",
+    date: "Timeless Genre",
+    imageUrl: "https://images.unsplash.com/photo-1415201364774-f6f0bb35f28f?w=800&auto=format&fit=crop",
   },
   {
-    name: "Ephraim Duncan",
-    email: "ephraim@documenso.com",
-    role: "Software Engineer",
-    imageUrl: "https://blocks.so/avatar-01.png",
+    name: "Electronic Beats",
+    description: "Pulsing synths and driving basslines",
+    date: "Trending Genre",
+    imageUrl: "https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=800&auto=format&fit=crop",
   },
   {
-    name: "Catalin Pit",
-    email: "catalin@documenso.com",
-    role: "Software Engineer",
-    imageUrl: "https://blocks.so/avatar-04.png",
+    name: "Classical",
+    description: "Orchestral masterpieces for focused work",
+    date: "Classical Genre",
+    imageUrl: "https://images.unsplash.com/photo-1507838153414-b4b713384a76?w=800&auto=format&fit=crop",
+  },
+  {
+    name: "Hip Hop",
+    description: "Fresh beats and lyrical excellence",
+    date: "Urban Genre",
+    imageUrl: "https://images.unsplash.com/photo-1571330735066-03aaa9429d89?w=800&auto=format&fit=crop",
   },
 ];
 
 export default function GridList02() {
   return (
-    <div className="flex items-center justify-center p-8">
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        {people.map((person) => (
-          <Card
-            key={person.email}
-            className="relative border transition-all duration-100 hover:border-muted-foreground hover:shadow-sm focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2 py-0"
-          >
-            <CardContent className="flex items-center space-x-4 p-4">
-              <Avatar className="h-10 w-10">
-                <AvatarImage src={person.imageUrl} alt={person.name} />
-                <AvatarFallback>{person.name.charAt(0)}</AvatarFallback>
-              </Avatar>
-              <div className="min-w-0 flex-1">
-                <a href="#" className="focus:outline-none">
-                  <span aria-hidden="true" className="absolute inset-0" />
-                  <p className="text-sm font-medium text-foreground">
-                    {person.name}
-                  </p>
-                  <p className="truncate text-sm text-muted-foreground">
-                    {person.role}
-                  </p>
-                </a>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+    <div
+      role="region"
+      aria-label="Music genres carousel"
+      className="flex flex-row gap-4 -mx-2 px-2 overflow-x-auto overflow-y-hidden scroll-smooth snap-x snap-mandatory webkit-overflow-scrolling-touch scrollbar-none"
+      style={{
+        scrollbarWidth: 'none',
+        msOverflowStyle: 'none',
+        WebkitOverflowScrolling: 'touch',
+      }}
+    >
+      <style jsx>{`
+        div::-webkit-scrollbar {
+          display: none;
+        }
+      `}</style>
+      {genres.map((genre) => (
+        <div key={genre.name} className="flex-shrink-0 snap-center">
+          <StationCard
+            title={genre.name}
+            subtitle={genre.description}
+            date={genre.date}
+            imageUrl={genre.imageUrl}
+          />
+        </div>
+      ))}
     </div>
   );
 }

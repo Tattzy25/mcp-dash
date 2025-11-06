@@ -3,7 +3,6 @@
 import * as React from "react"
 import {
   IconCamera,
-  IconChartBar,
   IconDashboard,
   IconDatabase,
   IconFileAi,
@@ -12,11 +11,9 @@ import {
   IconFolder,
   IconHelp,
   IconInnerShadowTop,
-  IconListDetails,
   IconReport,
   IconSearch,
   IconSettings,
-  IconUsers,
 } from "@tabler/icons-react"
 
 import { NavDocuments } from "@/components/nav-documents"
@@ -44,26 +41,6 @@ const data = {
       title: "Dashboard",
       url: "#",
       icon: IconDashboard,
-    },
-    {
-      title: "Lifecycle",
-      url: "#",
-      icon: IconListDetails,
-    },
-    {
-      title: "Analytics",
-      url: "#",
-      icon: IconChartBar,
-    },
-    {
-      title: "Projects",
-      url: "#",
-      icon: IconFolder,
-    },
-    {
-      title: "Team",
-      url: "#",
-      icon: IconUsers,
     },
   ],
   quickLinks: [
@@ -163,11 +140,6 @@ const data = {
       name: "Integrations",
       url: "/dashboard/integrations",
       icon: IconDatabase,
-    },
-    {
-      name: "Reports",
-      url: "/dashboard/reports",
-      icon: IconReport,
     },
     {
       name: "Stations",

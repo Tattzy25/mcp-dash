@@ -90,7 +90,18 @@ export default function AskBridgitAIPage() {
   }
 
   return (
-    <div className="flex flex-col gap-6 px-4 lg:px-6">
+    <div className="flex flex-col gap-8 px-4 lg:px-6 py-8">
+      {/* Hero Section */}
+      <div className="flex flex-col gap-4 max-w-4xl">
+        <h1 className="text-6xl font-bold tracking-tight">
+          Generate Data with AI
+        </h1>
+        <p className="text-xl text-muted-foreground leading-relaxed">
+          Describe what you need and watch Bridgit AI build your dataset instantly. 
+          No setup, no hassle—just intelligent data generation powered by AI.
+        </p>
+      </div>
+
       <Card>
         <CardHeader className="gap-3">
           <CardTitle>Ask Bridgit AI</CardTitle>

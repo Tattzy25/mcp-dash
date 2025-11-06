@@ -1,15 +1,14 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useRef } from "react"
 import { Station } from "./types/station"
 import { StationSearchBar } from "./components/StationSearchBar"
-import GridList02 from "@/components/grid-list-02"
-import { StationAudioPlayer } from "./components/StationAudioPlayer"
 import { StationList } from "./components/StationList"
 import { LoadMoreButton } from "./components/LoadMoreButton"
 import { useStationSearch } from "./hooks/useStationSearch"
 import { useStationFilters } from "./hooks/useStationFilters"
 import { useStationPagination } from "./hooks/useStationPagination"
+import { Speaker } from "@/components/speaker"
 
 interface StationsGridProps {
   initialStations: Station[]
@@ -17,6 +16,8 @@ interface StationsGridProps {
 
 export function StationsGrid({ initialStations }: StationsGridProps) {
   const [isSearching, setIsSearching] = useState(false)
+  const [currentStation, setCurrentStation] = useState<Station | null>(null)
+  const audioRef = useRef<HTMLAudioElement | null>(null)
 
   const { searchQuery, stations, setStations, handleSearch } =
     useStationSearch(initialStations)
@@ -28,12 +29,19 @@ export function StationsGrid({ initialStations }: StationsGridProps) {
     useStationPagination(stations)
 
   const handlePlayStation = (station: Station) => {
-    console.log("Playing station:", station.title, station.streamUrl)
-    // TODO: Implement audio playback
+    setCurrentStation(station)
+    if (audioRef.current) {
+      audioRef.current.src = station.streamUrl
+      audioRef.current.load()
+      audioRef.current.play().catch(err => console.error("Error playing:", err))
+    }
   }
 
   return (
     <div className="flex flex-col gap-8">
+      {/* Hidden audio element for radio streaming */}
+      <audio ref={audioRef} />
+
       <StationSearchBar
         searchQuery={searchQuery}
         isSearching={isSearching}
@@ -41,12 +49,12 @@ export function StationsGrid({ initialStations }: StationsGridProps) {
         resultsCount={stations.length}
       />
 
-      {/* Filters strip below search bar with exactly 50px spacing */}
-      <div className="mt-[50px]">
-        <GridList02 />
+      {/* Music Player - 100px spacing above, 80px spacing below */}
+      <div className="mt-[100px] mb-[80px] flex justify-center">
+        <div className="w-full max-w-md">
+          <Speaker currentStation={currentStation} audioRef={audioRef} />
+        </div>
       </div>
-
-      <StationAudioPlayer stationsCount={stations.length} />
 
       <StationList stations={displayedStations} onPlay={handlePlayStation} />
 

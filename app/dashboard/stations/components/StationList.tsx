@@ -1,6 +1,6 @@
 "use client"
 
-import CardFlip from "@/components/kokonutui/card-flip"
+import { StationCard } from "@/components/station-card"
 import { Station } from "../types/station"
 
 interface StationListProps {
@@ -20,15 +20,14 @@ export function StationList({ stations, onPlay }: StationListProps) {
   }
 
   return (
-    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-3 2xl:grid-cols-3 gap-4 sm:gap-6">
+    <div className="grid grid-cols-3 gap-[10px]">
       {stations.map((station) => (
-        <CardFlip
+        <StationCard
           key={station.id}
           title={station.title}
-          subtitle={station.subtitle}
-          description={station.description}
-          features={station.features}
-          showPlayButton={true}
+          subtitle={station.description}
+          date={station.subtitle}
+          imageUrl={station.favicon || "https://images.unsplash.com/photo-1511379938547-c1f69419868d?w=800&auto=format&fit=crop"}
           onPlay={() => onPlay(station)}
         />
       ))}
