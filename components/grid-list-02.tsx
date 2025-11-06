@@ -31,11 +31,11 @@ const people = [
 export default function GridList02() {
   return (
     <div className="flex items-center justify-center p-8">
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+      <div className="flex flex-col gap-4 lg:flex-row lg:flex-nowrap lg:overflow-x-auto">
         {people.map((person) => (
           <Card
             key={person.email}
-            className="relative border transition-all duration-100 hover:border-muted-foreground hover:shadow-sm focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2 py-0"
+            className="relative border transition-all duration-100 hover:border-muted-foreground hover:shadow-sm focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2 py-0 lg:shrink-0 lg:w-64"
           >
             <CardContent className="flex items-center space-x-4 p-4">
               <Avatar className="h-10 w-10">
