@@ -1,6 +1,9 @@
 import { headers } from "next/headers"
 import { performance } from "node:perf_hooks"
 
+import { HealthRadials } from "@/components/tattty/health-radials"
+import { RealTimeLogTable } from "@/components/tattty/real-time-log-table"
+import type { StatusSummary } from "@/components/tattty/types"
 import { Badge } from "@/components/ui/badge"
 import {
   Card,
@@ -10,6 +13,14 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
 
 type EndpointMethod = "GET" | "POST"
 type EndpointMode = "probe" | "metrics"
@@ -218,6 +229,12 @@ export default async function TaTTTyMcpPage() {
     }),
   }))
 
+  const flattenedStatuses = sectionsWithStatus.flatMap((section) =>
+    section.items as EndpointStatus[]
+  )
+  const statusSummary = buildStatusSummary(flattenedStatuses)
+  const spreadsheetRows = buildSpreadsheetRows(flattenedStatuses)
+
   return (
     <div className="flex flex-col gap-8 px-4 py-8 lg:px-6">
       <header className="flex flex-col gap-3">
@@ -230,6 +247,50 @@ export default async function TaTTTyMcpPage() {
           directly from the production endpoints listed below.
         </p>
       </header>
+
+      <section className="grid gap-4 xl:grid-cols-[2fr,1fr]">
+        <Card className="p-6">
+          <div className="flex flex-col gap-6">
+            <div className="flex items-center justify-between gap-4">
+              <div>
+                <h2 className="text-2xl font-semibold">Radial Telemetry</h2>
+                <p className="text-muted-foreground text-sm">
+                  Percentages are derived from the same live probes rendered below.
+                </p>
+              </div>
+              <Badge variant="secondary">
+                {statusSummary.total} live endpoints
+              </Badge>
+            </div>
+            <HealthRadials summary={statusSummary} />
+          </div>
+        </Card>
+        <Card className="p-6 flex flex-col gap-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-xl font-semibold">Real-time logging</h2>
+              <p className="text-muted-foreground text-sm">
+                Direct tail from /admin/api/logs via secured proxy.
+              </p>
+            </div>
+            <Badge variant="outline">live</Badge>
+          </div>
+          <RealTimeLogTable />
+        </Card>
+      </section>
+
+      <Card className="p-6">
+        <div className="flex items-center justify-between pb-4">
+          <div>
+            <h2 className="text-2xl font-semibold">Mission spreadsheet</h2>
+            <p className="text-muted-foreground text-sm">
+              Every endpoint, latency, and status rendered as a live spreadsheet grid.
+            </p>
+          </div>
+          <Badge variant="secondary">auto-updates</Badge>
+        </div>
+        <StatusSpreadsheet statuses={spreadsheetRows} />
+      </Card>
 
       {sectionsWithStatus.map((section) => (
         <section key={section.id} className="flex flex-col gap-4">
@@ -454,6 +515,148 @@ function deriveMetricsStatus({
     details,
     timestamp: formatTimestamp(generatedAt),
   }
+}
+
+function buildSpreadsheetRows(statuses: EndpointStatus[]): EndpointStatus[] {
+  return [...statuses].sort((a, b) => a.label.localeCompare(b.label))
+}
+
+function StatusSpreadsheet({ statuses }: { statuses: EndpointStatus[] }) {
+  if (statuses.length === 0) {
+    return (
+      <div className="text-sm text-muted-foreground">
+        Awaiting first successful probe cycle. Once live traffic lands, this grid fills in
+        automatically.
+      </div>
+    )
+  }
+
+  return (
+    <div className="overflow-x-auto">
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead className="min-w-[220px]">Endpoint</TableHead>
+            <TableHead>Status</TableHead>
+            <TableHead>Latency</TableHead>
+            <TableHead>HTTP</TableHead>
+            <TableHead className="min-w-[140px]">Last Seen</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {statuses.map((status) => (
+            <TableRow key={status.id} className="text-sm">
+              <TableCell>
+                <div className="flex flex-col">
+                  <span className="font-medium">{status.label}</span>
+                  <span className="text-muted-foreground text-xs font-mono">
+                    {status.method} {status.path}
+                  </span>
+                  <span className="text-muted-foreground text-xs">
+                    {status.details[0] ?? "No details"}
+                  </span>
+                </div>
+              </TableCell>
+              <TableCell>
+                <Badge variant={status.badgeVariant}>{status.badgeLabel}</Badge>
+              </TableCell>
+              <TableCell className="font-mono">
+                {typeof status.latencyMs === "number"
+                  ? `${Math.round(status.latencyMs)} ms`
+                  : "—"}
+              </TableCell>
+              <TableCell className="font-mono text-xs">
+                {status.httpStatus ?? "—"}
+              </TableCell>
+              <TableCell className="font-mono text-xs">{status.timestamp}</TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </div>
+  )
+}
+
+function buildStatusSummary(statuses: EndpointStatus[]): StatusSummary {
+  const total = statuses.length
+  if (total === 0) {
+    return {
+      total: 0,
+      healthy: 0,
+      degraded: 0,
+      failing: 0,
+      avgLatency: null,
+      p95Latency: null,
+      maxLatency: null,
+      sampleSize: 0,
+      healthMix: [
+        { key: "healthy", label: "Healthy", value: 0 },
+        { key: "degraded", label: "Degraded", value: 0 },
+        { key: "failing", label: "Failing", value: 0 },
+      ],
+      latencyBuckets: [
+        { key: "fast", label: "< 400 ms", value: 0 },
+        { key: "steady", label: "400-1200 ms", value: 0 },
+        { key: "slow", label: "> 1200 ms", value: 0 },
+      ],
+    }
+  }
+
+  const latencySamples = statuses
+    .map((status) => status.latencyMs)
+    .filter((value): value is number => typeof value === "number")
+
+  const failing = statuses.filter((status) => !status.ok).length
+  const degraded = statuses.filter((status) => {
+    if (!status.ok) return false
+    if (typeof status.latencyMs === "number" && status.latencyMs > 1200) {
+      return true
+    }
+    const label = status.badgeLabel?.toLowerCase?.() ?? ""
+    return label.includes("degrad") || label.includes("warn") || label.includes("issue")
+  }).length
+  const healthy = Math.max(total - degraded - failing, 0)
+
+  const avgLatency = latencySamples.length
+    ? latencySamples.reduce((sum, value) => sum + value, 0) / latencySamples.length
+    : null
+  const p95Latency = computePercentile(latencySamples, 0.95)
+  const maxLatency = latencySamples.length
+    ? Math.max(...latencySamples)
+    : null
+
+  const fast = latencySamples.filter((value) => value < 400).length
+  const steady = latencySamples.filter((value) => value >= 400 && value <= 1200).length
+  const slow = latencySamples.filter((value) => value > 1200).length
+  const latencyBase = latencySamples.length || 1
+
+  return {
+    total,
+    healthy,
+    degraded,
+    failing,
+    avgLatency,
+    p95Latency,
+    maxLatency,
+    sampleSize: latencySamples.length,
+    healthMix: [
+      { key: "healthy", label: "Healthy", value: (healthy / total) * 100 },
+      { key: "degraded", label: "Degraded", value: (degraded / total) * 100 },
+      { key: "failing", label: "Failing", value: (failing / total) * 100 },
+    ],
+    latencyBuckets: [
+      { key: "fast", label: "< 400 ms", value: (fast / latencyBase) * 100 },
+      { key: "steady", label: "400-1200 ms", value: (steady / latencyBase) * 100 },
+      { key: "slow", label: "> 1200 ms", value: (slow / latencyBase) * 100 },
+    ],
+  }
+}
+
+function computePercentile(values: number[], percentile: number): number | null {
+  if (!values.length) return null
+  const sorted = [...values].sort((a, b) => a - b)
+  const rank = Math.min(sorted.length - 1, Math.max(0, Math.ceil(percentile * sorted.length) - 1))
+  return sorted[rank]
 }
 
 function buildJsonHighlights(payload: unknown, limit = 3): string[] {
