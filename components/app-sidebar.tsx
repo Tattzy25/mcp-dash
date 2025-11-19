@@ -8,6 +8,7 @@ import {
   IconFileAi,
   IconFileDescription,
   IconHelp,
+  IconCategory2,
   IconInnerShadowTop,
   IconReport,
   IconSettings,
@@ -59,6 +60,11 @@ const data = {
       title: "URL",
       url: "/dashboard/url",
       icon: IconReport,
+    },
+    {
+      title: "TaTTTy-MCP",
+      url: "/dashboard/tattty-mcp",
+      icon: IconCategory2,
     },
   ],
   navClouds: [
@@ -132,10 +138,10 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           <SidebarMenuItem>
             <SidebarMenuButton
               asChild
-              className="data-[slot=sidebar-menu-button]:!p-1.5"
+              className="data-[slot=sidebar-menu-button]:p-1.5!"
             >
               <a href="#">
-                <IconInnerShadowTop className="!size-5" />
+                <IconInnerShadowTop className="size-5!" />
                 <span className="text-base font-semibold">Acme Inc.</span>
               </a>
             </SidebarMenuButton>
